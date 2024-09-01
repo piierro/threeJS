@@ -41,41 +41,38 @@ export class Site3dThree {
   }
   
 meshToBoundCenter(mesh, options = undefined) {
-  if (mesh.isSkinnedMesh || mesh.userData.isBoundCenter === true) {
-    return mesh.position;
-  }
+   if (mesh.isSkinnedMesh || mesh.userData.isBoundCenter === true) {
+        return mesh.position;
+    }
 
-  this.meshInitParams(mesh);
+    // Сохранение начальных параметров
+    this.meshInitParams(mesh);
 
-  const geometry = mesh.geometry;
-  const center = new THREE.Vector3();
-  
-  // Вычисляем bounding box геометрии
-  geometry.computeBoundingBox();
-  const boundingBox = geometry.boundingBox;
-  
-  if (boundingBox) {
-    // Получаем центр Bounding Box'а
-    const tempBox = boundingBox.clone().applyMatrix4(mesh.matrixWorld);
-    tempBox.getCenter(center);
-  }
+    const geometry = mesh.geometry;
+    const center = new THREE.Vector3();
 
-  // Центрируем геометрию
-  geometry.center();
-  
-  // Устанавливаем новую позицию меша
-  mesh.position.copy(center);
+    // Обновление матрицы мира
+    mesh.updateMatrixWorld(true);
+    
+    // Вычисляем bounding box геометрии
+    geometry.computeBoundingBox();
+    const boundingBox = geometry.boundingBox;
 
-  // Добавляем начальную позицию, если она есть
-  const initPosition = mesh.userData?.initParams?.position;
-  if (initPosition) {
-    mesh.position.add(initPosition);
-  }
+    if (boundingBox) {
+        // Применяем матрицу трансформации меша к Bounding Box
+        boundingBox.applyMatrix4(mesh.matrixWorld);
+        boundingBox.getCenter(center);
+        
+        // Перемещение меша в центр
+        const offset = new THREE.Vector3().subVectors(center, mesh.position);
+        mesh.position.add(offset);
+    }
+    
+    // Установка флага о центровке
+    mesh.userData.isBoundCenter = true;
 
-  mesh.userData.isBoundCenter = true;
+    this.meshInitParams(mesh);
 
-  this.meshInitParams(mesh);
-
-  return center;   
+    return center;
 }
 }
