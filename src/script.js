@@ -6,12 +6,12 @@ import './style.css';
 
 // Инициализация сцены
 const { sizes, camera, scene, canvas, controls, renderer } = init();
-camera.position.set(0, 5, 2);
+camera.position.set(0, 5, 10);
 
 // Настройка освещения
 const setupLighting = () => {
-    const hemLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.61);
-    hemLight.position.set(0, 50, 0);
+    const hemLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.81);
+    hemLight.position.set(0, 50, 0)
     scene.add(hemLight);
 
     const dirLight = new THREE.DirectionalLight(0xffffff, 0.54);
@@ -21,24 +21,32 @@ const setupLighting = () => {
     scene.add(dirLight);
 };
 
+let loadedModel = null;
+
 // Загрузка модели GLTF
-const loadModel = (path) => {
-    const loader = new GLTFLoader();
-    const site3d = new Site3dThree();
+ const loadModel = (path) => {
+       const loader = new GLTFLoader();
 
-    return new Promise((resolve, reject) => {
-        loader.load(path, (gltf) => {
-            const model = gltf.scene;
-			model.scale.set(3, 3, 3);
-            site3d.object3dToBoundCenter(model);
-            scene.add(model);
-            resolve(model);
-        }, undefined, (error) => {
-            reject(error);
-        });
-    });
-};
+       return new Promise((resolve, reject) => {
+           if (loadedModel) {
+               resolve(loadedModel);
+               return;
+           }
 
+           loader.load(path, (gltf) => {
+               const model = gltf.scene;
+               model.scale.set(1.5, 1.5, 1.5);
+               model.rotation.y = Math.PI / 2;
+
+               scene.add(model);
+               loadedModel = model;
+
+               resolve(model);
+           }, undefined, (error) => {
+               reject(error);
+           });
+       });
+   };
 // Отображение Bounding Box'ов
 const displayBoundingBoxes = (model) => {
     model.traverse((mesh) => {
@@ -50,7 +58,6 @@ const displayBoundingBoxes = (model) => {
     });
 };
 
-// Анимационный цикл
 const animate = () => {
     controls.update();
     renderer.render(scene, camera);
@@ -64,7 +71,6 @@ window.addEventListener('resize', () => {
     camera.aspect = sizes.width / sizes.height;
     camera.updateProjectionMatrix();
     renderer.setSize(sizes.width, sizes.height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 });
 
 window.addEventListener('dblclick', () => {
@@ -81,5 +87,4 @@ loadModel('/models/Flamingo.glb')
     .then(displayBoundingBoxes)
     .catch((error) => console.error(error));
 
-// Запуск анимации
 animate();
