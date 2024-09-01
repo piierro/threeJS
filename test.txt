@@ -10,3 +10,115 @@ Bounding Box’ы вокруг всех мешей модели, они долж
 Для начала работы рекомендуем развернуть архив https://github.com/mrdoob/three.js/archive/master.zip 
 на локальном сервере, найти пример загрузки glb файла и на базе этого примера выполнить данное задание.
 Документация к three.js - https://threejs.org/docs/index.html#manual/en/introduction/Creating-a-scene.
+
+/**
+ Класс операций над объектами three.js
+ @class Site3dThree
+ @constructor
+ @param    {Scene} scene    Объект сцены
+ */
+class Site3dThree
+{
+  /**
+   Метод возвращает массив мешей объекта three.js
+   @method getObject3dMeshes
+   @param     {Object3D} object3d    Объект three.js
+   @param     {object} options       Дополнительные параметры:
+   - exceptions - массив имен мешей для исключения
+   @return    {Mesh[]}               Массив мешей
+   */
+  getObject3dMeshes(object3d, options = undefined)
+  {
+    if (object3d.isMesh)
+    {
+      return [object3d];
+    }
+    
+    const exceptions = options?.exceptions ?? [];
+    
+    const result = [];
+    
+    object3d.traverse(child =>
+    {
+      if (child.isMesh && exceptions.find(name => name === child.name) === undefined)
+      {
+        result.push(child);
+      }
+    });
+    
+    return result;
+  }
+  
+  /**
+   Метод устанавливает позицию объекта three.js в его геометрическом центре
+   @method object3dToBoundCenter
+   @param    {Object3D} object3d    Объект three.js
+   @param    {object} options       Дополнительные параметры
+   */
+  object3dToBoundCenter(object3d, options = undefined)
+  {
+    this.getObject3dMeshes(object3d).forEach(mesh =>
+    {
+      this.meshToBoundCenter(mesh);
+    });
+  }
+  
+  /**
+   Метод инициализирует начальные параметры меша
+   @method meshInitParams
+   @param    {Mesh} mesh   Клонируемый еши
+   */
+  meshInitParams(mesh)
+  {
+    mesh.userData.initParams = {
+      position: mesh.position.clone(),
+      scale: mesh.scale.clone(),
+      rotation: mesh.rotation.clone()
+    };
+  }
+  
+  /**
+   Метод устанавливает позицию меша в его геометрическом центре
+   @method meshToBoundCenter
+   @param     {Mesh} mesh         Меш
+   @param     {object} options    Дополнительные параметры
+   @return    {Vector3}           Новая позиция меша
+   */
+  meshToBoundCenter(mesh, options = undefined)
+  {
+    if (mesh.isSkinnedMesh || mesh.userData.isBoundCenter === true)
+    {
+      return mesh.position;
+    }
+    
+    this.meshInitParams(mesh);
+    
+    const geometry = mesh.geometry;
+    const center = new Vector3();
+    
+    geometry.computeBoundingBox();
+    const boundingBox = geometry.boundingBox;
+    
+    if (boundingBox)
+    {
+      boundingBox.applyMatrix4(new Matrix4().compose(new Vector3(), mesh.quaternion, mesh.scale));
+      boundingBox.getCenter(center);
+    }
+    
+    geometry.center();
+    
+    mesh.position.copy(center);
+    
+    const initPosition = mesh.userData?.initParams?.position;
+    if (initPosition)
+    {
+      mesh.position.add(initPosition);
+    }
+    
+    mesh.userData.isBoundCenter = true;
+    
+    this.meshInitParams(mesh);
+    
+    return center;
+  }
+}

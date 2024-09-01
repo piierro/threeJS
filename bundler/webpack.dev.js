@@ -29,7 +29,7 @@ module.exports = merge(commonConfiguration, {
             overlay: true,
             progress: false,
         },
-        onAfterSetupMiddleware: function (devServer) {
+        setupMiddlewares: function (middlewares,devServer) {
             const port = devServer.options.port;
             const https = devServer.options.https ? 's' : '';
             const localIp = ip.address();
@@ -41,6 +41,7 @@ module.exports = merge(commonConfiguration, {
                     domain2
                 )}`
             );
+            return middlewares;
         },
     },
 });
