@@ -9,7 +9,12 @@ const init = () => {
 
 	const scene = new THREE.Scene();
 	const canvas = document.querySelector('.canvas');
-	const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
+	const camera = new THREE.PerspectiveCamera(
+		75,
+		sizes.width / sizes.height,
+		0.1,
+		1000,
+	);
 	scene.add(camera);
 
 	const controls = new OrbitControls(camera, canvas);
