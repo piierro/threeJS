@@ -7,9 +7,8 @@ import './style.css';
 const { sizes, camera, scene, controls, renderer } = init();
 camera.position.set(0, 1, 3);
 
-// Настройка освещения
 const setupLighting = () => {
-    const hemLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6);
+    const hemLight = new THREE.HemisphereLight(0xffffff, 0.6);
     hemLight.position.set(0, 50, 0);
     scene.add(hemLight);
 
@@ -22,57 +21,40 @@ const setupLighting = () => {
 
 const site3d = new Site3dThree();
 
-// Загрузка модели GLTF
-const loadModel = (path) => {
+const loadModel = async (path) => {
     const loader = new GLTFLoader();
-    return new Promise((resolve, reject) => {
-        loader.load(
-            path,
-            (gltf) => {
-                const model = gltf.scene;
-                scene.add(model);
+    try {
+        const gltf = await new Promise((resolve, reject) => {
+            loader.load(path, resolve, undefined, reject);
+        });
+        
+        const model = gltf.scene;
+        scene.add(model);
 
-                // Метод object3dToBoundCenter
-                site3d.object3dToBoundCenter(model);
+        site3d.object3dToBoundCenter(model);
+        displayBoundingBoxes(model);
 
-                // Отображение Bounding Box'ов для всех мешей
-                displayBoundingBoxes(model);
-
-                resolve(model);
-            },
-            undefined,
-            (error) => {
-                reject(error);
-            },
-        );
-    });
+        console.log('Model loaded successfully');
+    } catch (error) {
+        console.error('Error loading model:', error);
+    }
 };
-
-// const displayBoundingBoxes = (model) => {
-//     const meshes = site3d.getObject3dMeshes(model);
-//     meshes.forEach((mesh) => {
-//         mesh.geometry.computeBoundingBox();
-
-//         const box = new THREE.Box3().setFromObject(mesh);
-//         const boxHelper = new THREE.Box3Helper(box, new THREE.Color(0xff0000));
-//         boxHelper.visible = true;
-//         scene.add(boxHelper);
-//     });
-// };
 
 const displayBoundingBoxes = (model) => {
     const meshes = site3d.getObject3dMeshes(model);
     meshes.forEach((mesh) => {
-        mesh.geometry.computeBoundingBox();
-		const boundingBox = mesh.geometry.boundingBox;
-
-       if (boundingBox) {
+        const boundingBox = getBoundingBox(mesh);
+        if (boundingBox) {
             const boxWorld = boundingBox.clone().applyMatrix4(mesh.matrixWorld);
             const boxHelper = new THREE.Box3Helper(boxWorld, new THREE.Color(0xff0000));
-			boxHelper.visible = true; 
             scene.add(boxHelper);
         }
     });
+};
+
+const getBoundingBox = (mesh) => {
+    mesh.geometry.computeBoundingBox();
+    return mesh.geometry.boundingBox;
 };
 
 const animate = () => {
@@ -81,10 +63,8 @@ const animate = () => {
     requestAnimationFrame(animate);
 };
 
-// Обработчики событий
 window.addEventListener('resize', () => {
-    sizes.width = window.innerWidth;
-    sizes.height = window.innerHeight;
+    const sizes = { width: window.innerWidth, height: window.innerHeight };
     camera.aspect = sizes.width / sizes.height;
     camera.updateProjectionMatrix();
     renderer.setSize(sizes.width, sizes.height);
@@ -92,10 +72,5 @@ window.addEventListener('resize', () => {
 
 // Основной код
 setupLighting();
-loadModel('/models/model1.glb')
-    .then(() => console.log('Model loaded successfully'))
-    .catch((error) => console.error(error));
-
+loadModel('/models/model1.glb');
 animate();
-
-

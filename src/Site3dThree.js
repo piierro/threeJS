@@ -1,20 +1,16 @@
 import * as THREE from 'three';
 
 class Site3dThree {
-  getObject3dMeshes(object3d, options = undefined) {
-    if (object3d.isMesh) {
-      return [object3d];
+  getObject3dMeshes(object3d, options = {}) {
+    if (!object3d || !object3d.isObject3D) {
+      throw new Error('Invalid Object3D');
     }
 
-    const exceptions = options?.exceptions ?? [];
-
+    const exceptions = options.exceptions || [];
     const result = [];
 
     object3d.traverse((child) => {
-      if (
-        child.isMesh &&
-        exceptions.find((name) => name === child.name) === undefined
-      ) {
+      if (child.isMesh && !exceptions.includes(child.name)) {
         result.push(child);
       }
     });
@@ -22,8 +18,8 @@ class Site3dThree {
     return result;
   }
 
-  object3dToBoundCenter(object3d, options = undefined) {
-    this.getObject3dMeshes(object3d).forEach((mesh) => {
+  object3dToBoundCenter(object3d, options = {}) {
+    this.getObject3dMeshes(object3d, options).forEach((mesh) => {
       this.meshToBoundCenter(mesh);
     });
   }
@@ -36,32 +32,37 @@ class Site3dThree {
     };
   }
 
-  meshToBoundCenter(mesh, options = undefined) {
-    if (mesh.isSkinnedMesh || mesh.userData.isBoundCenter === true) {
+meshToBoundCenter(mesh) {
+    if (mesh.isSkinnedMesh || mesh.userData.isBoundCenter) {
       return mesh.position;
     }
 
     this.meshInitParams(mesh);
-    const { geometry } = mesh;
+    const geometry = mesh.geometry;
 
     geometry.computeBoundingBox();
-    const { boundingBox } = geometry;
+    const boundingBox = geometry.boundingBox;
 
     if (boundingBox) {
-      const center = new THREE.Vector3();
-      boundingBox.getCenter(center);
+        const center = new THREE.Vector3();
+        boundingBox.getCenter(center);
 
-      const worldPosition = new THREE.Vector3();
-      mesh.getWorldPosition(worldPosition);
+        const currentBoxCenter = new THREE.Vector3();
+        boundingBox.getCenter(currentBoxCenter);
 
-      mesh.position
-        .copy(center)
-        .sub(mesh.geometry.boundingBox.getCenter(new THREE.Vector3()))
-        .add(worldPosition);
+        const worldPosition = new THREE.Vector3();
+        mesh.getWorldPosition(worldPosition);
+
+        // mesh.position.copy(center).sub(currentBoxCenter).add(worldPosition);
+
+        geometry.computeBoundingBox();
+    } else {
+        console.warn('No bounding box calculated for mesh:', mesh);
     }
 
     mesh.userData.isBoundCenter = true;
     this.meshInitParams(mesh);
+
     return mesh.position;
   }
 }
